@@ -19,6 +19,14 @@ public class Task {
     }
 
     /**
+     * Returns the description shown in the task list.
+     * {@code find} searches this text.
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
      * Returns the icon shown in the task list.
      * {@code X} means done, and a blank means not done.
      */
