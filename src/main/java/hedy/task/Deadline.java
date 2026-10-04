@@ -1,29 +1,43 @@
 package hedy.task;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
 /**
- * A task that must be finished by a particular time.
+ * A task that must be finished on a particular date.
+ * The date is stored as a {@link LocalDate}, not as the raw text the user typed.
  */
 public class Deadline extends Task {
-    protected String by;
+    private static final DateTimeFormatter DISPLAY_FORMAT =
+            DateTimeFormatter.ofPattern("MMM dd yyyy", Locale.ENGLISH);
+    private static final DateTimeFormatter FILE_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;
+
+    protected LocalDate by;
 
     /**
      * Creates a deadline.
      *
      * @param description what needs to be done
-     * @param by when it is due, stored as the user typed it
+     * @param by the date it is due
      */
-    public Deadline(String description, String by) {
+    public Deadline(String description, LocalDate by) {
         super(description);
         this.by = by;
     }
 
+    /** Returns the due date. */
+    public LocalDate getBy() {
+        return by;
+    }
+
     @Override
     public String toFileFormat() {
-        return "D | " + super.toFileFormat() + " | " + by;
+        return "D | " + super.toFileFormat() + " | " + by.format(FILE_FORMAT);
     }
 
     @Override
     public String toString() {
-        return "[D]" + super.toString() + " (by: " + by + ")";
+        return "[D]" + super.toString() + " (by: " + by.format(DISPLAY_FORMAT) + ")";
     }
 }
