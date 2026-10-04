@@ -1,12 +1,10 @@
 package hedy;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 import hedy.exception.HedyException;
+import hedy.storage.Storage;
 import hedy.task.Deadline;
 import hedy.task.Event;
 import hedy.task.Task;
@@ -19,11 +17,11 @@ import hedy.task.Todo;
  */
 public class Hedy {
     private static final String LINE = "____________________________________________________________";
-    private static final String FILE_PATH = "./data/duke.txt";
+    private static final Storage storage = new Storage();
     private static ArrayList<Task> tasks = new ArrayList<>();
 
     public static void main(String[] args) {
-        loadTasks();
+        tasks = storage.load();
         Scanner scanner = new Scanner(System.in);
 
         printLine();
@@ -111,7 +109,7 @@ public class Hedy {
         }
         Task newTask = new Todo(arguments);
         tasks.add(newTask);
-        saveTasks();
+        storage.save(tasks);
         printTaskAdded(newTask);
     }
 
@@ -140,7 +138,7 @@ public class Hedy {
         }
         Task newTask = new Deadline(description, by);
         tasks.add(newTask);
-        saveTasks();
+        storage.save(tasks);
         printTaskAdded(newTask);
     }
 
@@ -171,7 +169,7 @@ public class Hedy {
         }
         Task newTask = new Event(description, start, end);
         tasks.add(newTask);
-        saveTasks();
+        storage.save(tasks);
         printTaskAdded(newTask);
     }
 
@@ -181,7 +179,7 @@ public class Hedy {
     private static void handleDelete(String arguments) throws HedyException {
         int index = parseTaskIndex(arguments, "delete");
         Task removedTask = tasks.remove(index);
-        saveTasks();
+        storage.save(tasks);
         System.out.println(" Noted. I've removed this task:");
         System.out.println("   " + removedTask);
         System.out.println(" Now you have " + taskCountText() + " in the list.");
@@ -194,7 +192,7 @@ public class Hedy {
         String commandName = isDone ? "mark" : "unmark";
         int index = parseTaskIndex(arguments, commandName);
         tasks.get(index).setDone(isDone);
-        saveTasks();
+        storage.save(tasks);
         if (isDone) {
             System.out.println(" Nice! I've marked this task as done:");
         } else {
@@ -270,75 +268,5 @@ public class Hedy {
             return "";
         }
         return input.substring(space + 1).trim();
-    }
-
-    /**
-     * Loads tasks from {@code ./data/duke.txt} if the file exists.
-     * A missing file just means this is a new list. A line that does not match
-     * the save format is skipped.
-     */
-    private static void loadTasks() {
-        File file = new File(FILE_PATH);
-        if (!file.exists()) {
-            return;
-        }
-        try (Scanner fileScanner = new Scanner(file)) {
-            while (fileScanner.hasNextLine()) {
-                Task task = taskFromFileLine(fileScanner.nextLine());
-                if (task != null) {
-                    tasks.add(task);
-                }
-            }
-        } catch (IOException e) {
-            System.out.println(" I could not read saved tasks, so I am starting with an empty list.");
-        }
-    }
-
-    /**
-     * Builds one task from a saved line, or returns null if the line is not usable.
-     * Format: {@code T | 1 | read book}, {@code D | 0 | return book | Sunday},
-     * or {@code E | 0 | meeting | Mon 2pm | 4pm}.
-     */
-    private static Task taskFromFileLine(String line) {
-        String[] parts = line.split(" \\| ");
-        if (parts.length < 3) {
-            return null;
-        }
-        String type = parts[0];
-        boolean isDone = parts[1].equals("1");
-        String description = parts[2];
-
-        Task task = null;
-        if (type.equals("T")) {
-            task = new Todo(description);
-        } else if (type.equals("D") && parts.length >= 4) {
-            task = new Deadline(description, parts[3]);
-        } else if (type.equals("E") && parts.length >= 5) {
-            task = new Event(description, parts[3], parts[4]);
-        }
-        if (task != null && isDone) {
-            task.setDone(true);
-        }
-        return task;
-    }
-
-    /**
-     * Writes the current task list to {@code ./data/duke.txt}.
-     * Creates the data folder if it does not exist yet.
-     */
-    private static void saveTasks() {
-        try {
-            File dir = new File("./data");
-            if (!dir.exists()) {
-                dir.mkdirs();
-            }
-            try (FileWriter writer = new FileWriter(FILE_PATH)) {
-                for (Task task : tasks) {
-                    writer.write(task.toFileFormat() + System.lineSeparator());
-                }
-            }
-        } catch (IOException e) {
-            System.out.println(" I could not save your tasks to disk.");
-        }
     }
 }
