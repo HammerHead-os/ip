@@ -9,6 +9,7 @@ import hedy.command.AddTodoCommand;
 import hedy.command.Command;
 import hedy.command.DeleteCommand;
 import hedy.command.ExitCommand;
+import hedy.command.FindCommand;
 import hedy.command.ListCommand;
 import hedy.command.MarkCommand;
 import hedy.exception.HedyException;
@@ -46,9 +47,11 @@ public class Parser {
             return parseEvent(arguments);
         case "delete":
             return new DeleteCommand(parseTaskNumber(arguments, "delete"));
+        case "find":
+            return new FindCommand(parseDescription(arguments, "find", "find book"));
         default:
             throw new HedyException("OOPS!!! I don't know what that means. "
-                    + "Try list, todo, deadline, event, mark, unmark, delete, or bye.");
+                    + "Try list, todo, deadline, event, mark, unmark, delete, find, or bye.");
         }
     }
 
@@ -124,7 +127,8 @@ public class Parser {
      */
     private static String parseDescription(String arguments, String commandName, String example) throws HedyException {
         if (arguments.isEmpty()) {
-            throw new HedyException("OOPS!!! The description of a " + commandName + " cannot be empty. Try: " + example);
+            String what = commandName.equals("find") ? "keyword" : "description of a " + commandName;
+            throw new HedyException("OOPS!!! The " + what + " cannot be empty. Try: " + example);
         }
         return arguments;
     }
