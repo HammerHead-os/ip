@@ -45,8 +45,17 @@ public class Deadline extends Task {
         return "D | " + super.toFileFormat() + " | " + by.format(FILE_FORMAT);
     }
 
+    /**
+     * Returns true when this deadline is still not done and its date is before today.
+     * A deadline due today is not overdue.
+     */
+    public boolean isOverdue() {
+        return !isDone && by.isBefore(LocalDate.now());
+    }
+
     @Override
     public String toString() {
-        return "[D]" + super.toString() + " (by: " + by.format(DISPLAY_FORMAT) + ")";
+        String overdue = isOverdue() ? ", overdue" : "";
+        return "[D]" + super.toString() + " (by: " + by.format(DISPLAY_FORMAT) + overdue + ")";
     }
 }

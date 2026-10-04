@@ -63,6 +63,8 @@ ____________________________________________________________
 
 `deadline return book /by Sunday` is rejected. Use `deadline return book /by 2019-10-15` instead.
 
+A deadline that is not done, and whose date is before today, is printed with `overdue`. Marking it done removes that word. A deadline due today is not overdue.
+
 ## Adding an event
 
 The start and end are stored as you type them.
