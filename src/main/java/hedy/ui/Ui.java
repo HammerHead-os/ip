@@ -1,8 +1,11 @@
 package hedy.ui;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Scanner;
 
+import hedy.task.Deadline;
+import hedy.task.NumberedTask;
 import hedy.task.Task;
 
 /**
@@ -89,6 +92,24 @@ public class Ui {
         }
         for (int i = 0; i < matches.size(); i++) {
             System.out.println(" " + (i + 1) + "." + matches.get(i));
+        }
+    }
+
+    /**
+     * Prints deadlines due on one date, using the same numbers as {@code list}.
+     *
+     * @param date the day the user asked about
+     * @param matches deadlines due on that day
+     */
+    public void showDeadlinesOn(LocalDate date, ArrayList<NumberedTask> matches) {
+        String printedDate = Deadline.formatDate(date);
+        if (matches.isEmpty()) {
+            System.out.println(" No deadlines are due on " + printedDate + ".");
+            return;
+        }
+        System.out.println(" Here are the deadlines due on " + printedDate + ":");
+        for (NumberedTask match : matches) {
+            System.out.println(" " + match.getNumber() + "." + match.getTask());
         }
     }
 

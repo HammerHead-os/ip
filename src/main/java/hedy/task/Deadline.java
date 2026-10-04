@@ -31,6 +31,15 @@ public class Deadline extends Task {
         return by;
     }
 
+    /**
+     * Formats a date the same way deadlines are printed, for example {@code Oct 15 2019}.
+     *
+     * @param date the date to format
+     */
+    public static String formatDate(LocalDate date) {
+        return date.format(DISPLAY_FORMAT);
+    }
+
     @Override
     public String toFileFormat() {
         return "D | " + super.toFileFormat() + " | " + by.format(FILE_FORMAT);

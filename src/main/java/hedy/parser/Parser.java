@@ -12,6 +12,7 @@ import hedy.command.ExitCommand;
 import hedy.command.FindCommand;
 import hedy.command.ListCommand;
 import hedy.command.MarkCommand;
+import hedy.command.OnCommand;
 import hedy.exception.HedyException;
 
 /**
@@ -49,9 +50,11 @@ public class Parser {
             return new DeleteCommand(parseTaskNumber(arguments, "delete"));
         case "find":
             return new FindCommand(parseDescription(arguments, "find", "find book"));
+        case "on":
+            return new OnCommand(parseOnDate(arguments));
         default:
             throw new HedyException("OOPS!!! I don't know what that means. "
-                    + "Try list, todo, deadline, event, mark, unmark, delete, find, or bye.");
+                    + "Try list, todo, deadline, event, mark, unmark, delete, find, on, or bye.");
         }
     }
 
@@ -103,6 +106,16 @@ public class Parser {
                     + example);
         }
         return new AddEventCommand(description, start, end);
+    }
+
+    /**
+     * Reads the date for {@code on yyyy-mm-dd}.
+     */
+    private static LocalDate parseOnDate(String arguments) throws HedyException {
+        if (arguments.isEmpty()) {
+            throw new HedyException("OOPS!!! Please give a date. Try: on 2019-10-15");
+        }
+        return parseDate(arguments.split("\\s+")[0]);
     }
 
     /**

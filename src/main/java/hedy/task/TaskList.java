@@ -1,5 +1,6 @@
 package hedy.task;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 
 import hedy.exception.HedyException;
@@ -71,6 +72,23 @@ public class TaskList {
         for (Task task : tasks) {
             if (task.getDescription().toLowerCase().contains(needle)) {
                 matches.add(task);
+            }
+        }
+        return matches;
+    }
+
+    /**
+     * Returns deadlines due on the given date.
+     * Each result keeps the number {@code list} would show, so the user can mark or delete it.
+     *
+     * @param date the day to match against each deadline
+     */
+    public ArrayList<NumberedTask> deadlinesOn(LocalDate date) {
+        ArrayList<NumberedTask> matches = new ArrayList<>();
+        for (int i = 0; i < tasks.size(); i++) {
+            Task task = tasks.get(i);
+            if (task instanceof Deadline deadline && deadline.getBy().equals(date)) {
+                matches.add(new NumberedTask(i + 1, task));
             }
         }
         return matches;

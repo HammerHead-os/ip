@@ -24,6 +24,7 @@ Type the command and press Enter. A blank line is ignored.
 | `unmark NUMBER` | Marks task NUMBER as not done |
 | `delete NUMBER` | Removes task NUMBER |
 | `find KEYWORD` | Shows tasks whose description contains KEYWORD |
+| `on yyyy-mm-dd` | Shows deadlines due on that date |
 | `bye` | Says goodbye and stops |
 
 Task numbers start at 1. They match the numbers shown by `list`.
@@ -111,6 +112,23 @@ ____________________________________________________________
 ```
 
 The numbers in this reply count the matches, not the numbers from `list`.
+
+## Deadlines on a date
+
+`on` shows only the deadlines due on that day. The numbers are the same ones `list` uses, so you can `mark` or `delete` them afterwards. Todos and events are not included.
+
+```
+on 2019-10-15
+```
+
+```
+____________________________________________________________
+ Here are the deadlines due on Oct 15 2019:
+ 2.[D][ ] return book (by: Oct 15 2019)
+____________________________________________________________
+```
+
+If nothing is due that day, Hedy says so. `on Sunday` is rejected. Use `on 2019-10-15`.
 
 ## Saving
 
