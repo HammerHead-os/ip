@@ -6,103 +6,21 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-class HedyException extends Exception {
-    public HedyException(String message) {
-        super(message);
-    }
-}
+import hedy.exception.HedyException;
+import hedy.task.Deadline;
+import hedy.task.Event;
+import hedy.task.Task;
+import hedy.task.Todo;
 
-class Task {
-    protected String description;
-    protected boolean isDone;
-
-    public Task(String description) {
-        this.description = description;
-        this.isDone = false;
-    }
-
-    public String getStatusIcon() {
-        return (isDone ? "X" : " ");
-    }
-
-    public void setDone(boolean done) {
-        this.isDone = done;
-    }
-
-    public String toFileFormat() {
-        return (isDone ? "1" : "0") + " | " + description;
-    }
-
-    @Override
-    public String toString() {
-        return "[" + getStatusIcon() + "] " + description;
-    }
-}
-
-class Todo extends Task {
-    public Todo(String description) {
-        super(description);
-    }
-
-    @Override
-    public String toFileFormat() {
-        return "T | " + super.toFileFormat();
-    }
-
-    @Override
-    public String toString() {
-        return "[T]" + super.toString();
-    }
-}
-
-class Deadline extends Task {
-    protected String by;
-
-    public Deadline(String description, String by) {
-        super(description);
-        this.by = by;
-    }
-
-    @Override
-    public String toFileFormat() {
-        return "D | " + super.toFileFormat() + " | " + by;
-    }
-
-    @Override
-    public String toString() {
-        return "[D]" + super.toString() + " (by: " + by + ")";
-    }
-}
-
-class Event extends Task {
-    protected String start;
-    protected String end;
-
-    public Event(String description, String start, String end) {
-        super(description);
-        this.start = start;
-        this.end = end;
-    }
-
-    @Override
-    public String toFileFormat() {
-        return "E | " + super.toFileFormat() + " | " + start + " | " + end;
-    }
-
-    @Override
-    public String toString() {
-        return "[E]" + super.toString() + " (from: " + start + " to: " + end + ")";
-    }
-}
-
+/**
+ * Hedy is a command-line chatbot that tracks todos, deadlines, and events.
+ * Commands that are incomplete or unknown are reported with a specific message
+ * instead of crashing the program.
+ */
 public class Hedy {
     private static final String LINE = "____________________________________________________________";
     private static final String FILE_PATH = "./data/duke.txt";
     private static ArrayList<Task> tasks = new ArrayList<>();
-
-    public static void printLine() {
-        System.out.println(LINE);
-    }
 
     public static void main(String[] args) {
         loadTasks();
@@ -115,201 +33,312 @@ public class Hedy {
 
         while (true) {
             String input = scanner.nextLine().trim();
-            
+            if (input.isEmpty()) {
+                continue;
+            }
+
             try {
                 printLine();
-                if (input.equalsIgnoreCase("bye")) {
-                    System.out.println(" Bye. Hope to see you again soon!");
+                if (!handleCommand(input)) {
                     printLine();
                     break;
-                } else if (input.equalsIgnoreCase("list")) {
-                    System.out.println(" Here are the tasks in your list:");
-                    for (int i = 0; i < tasks.size(); i++) {
-                        System.out.println(" " + (i + 1) + "." + tasks.get(i));
-                    }
-                } else if (input.startsWith("mark ")) {
-                    handleMark(input, true);
-                } else if (input.startsWith("unmark ")) {
-                    handleMark(input, false);
-                } else if (input.startsWith("todo")) {
-                    handleTodo(input);
-                } else if (input.startsWith("deadline")) {
-                    handleDeadline(input);
-                } else if (input.startsWith("event")) {
-                    handleEvent(input);
-                } else if (input.startsWith("delete ")) {
-                    handleDelete(input);
-                } else if (input.isEmpty()) {
-                    printLine();
-                    continue;
-                } else {
-                    throw new HedyException("OOPS!!! Hedy is sorry, but she doesn't know what that means :-(");
                 }
                 printLine();
             } catch (HedyException e) {
                 System.out.println(" " + e.getMessage());
-                printLine();
-            } catch (IndexOutOfBoundsException | NumberFormatException e) {
-                System.out.println(" OOPS!!! Invalid task number or format provided.");
                 printLine();
             }
         }
         scanner.close();
     }
 
-    private static void loadTasks() {
-        try {
-            File file = new File(FILE_PATH);
-            if (!file.exists()) {
-                return;
-            }
-            Scanner fileScanner = new Scanner(file);
-            while (fileScanner.hasNextLine()) {
-                String line = fileScanner.nextLine();
-                String[] parts = line.split(" \\| ");
-                if (parts.length < 3) {
-                    continue;
-                }
+    /**
+     * Runs one user command.
+     *
+     * @param input the full line the user typed
+     * @return false when the user says bye, so the program can exit
+     * @throws HedyException if the command is unknown or incomplete
+     */
+    private static boolean handleCommand(String input) throws HedyException {
+        String command = firstWord(input);
+        String arguments = argumentsOf(input);
 
-                String type = parts[0];
-                boolean isDone = parts[1].equals("1");
-                String desc = parts[2];
-
-                Task task = null;
-                if (type.equals("T")) {
-                    task = new Todo(desc);
-                } else if (type.equals("D") && parts.length >= 4) {
-                    task = new Deadline(desc, parts[3]);
-                } else if (type.equals("E") && parts.length >= 5) {
-                    task = new Event(desc, parts[3], parts[4]);
-                }
-
-                if (task != null) {
-                    if (isDone) {
-                        task.setDone(true);
-                    }
-                    tasks.add(task);
-                }
-            }
-            fileScanner.close();
-        } catch (IOException e) {
-            // Ignore load errors
+        switch (command) {
+        case "bye":
+            System.out.println(" Bye. Hope to see you again soon!");
+            return false;
+        case "list":
+            printTaskList();
+            return true;
+        case "mark":
+            handleMark(arguments, true);
+            return true;
+        case "unmark":
+            handleMark(arguments, false);
+            return true;
+        case "todo":
+            handleTodo(arguments);
+            return true;
+        case "deadline":
+            handleDeadline(arguments);
+            return true;
+        case "event":
+            handleEvent(arguments);
+            return true;
+        case "delete":
+            handleDelete(arguments);
+            return true;
+        default:
+            throw new HedyException("OOPS!!! I don't know what that means. "
+                    + "Try list, todo, deadline, event, mark, unmark, delete, or bye.");
         }
     }
 
+    private static void printTaskList() {
+        System.out.println(" Here are the tasks in your list:");
+        for (int i = 0; i < tasks.size(); i++) {
+            System.out.println(" " + (i + 1) + "." + tasks.get(i));
+        }
+    }
+
+    /**
+     * Adds a todo. The description after {@code todo} must not be empty.
+     */
+    private static void handleTodo(String arguments) throws HedyException {
+        if (arguments.isEmpty()) {
+            throw new HedyException("OOPS!!! The description of a todo cannot be empty. "
+                    + "Try: todo read book");
+        }
+        Task newTask = new Todo(arguments);
+        tasks.add(newTask);
+        saveTasks();
+        printTaskAdded(newTask);
+    }
+
+    /**
+     * Adds a deadline. Expected form: {@code deadline <description> /by <time>}.
+     */
+    private static void handleDeadline(String arguments) throws HedyException {
+        if (arguments.isEmpty()) {
+            throw new HedyException("OOPS!!! The description of a deadline cannot be empty. "
+                    + "Try: deadline return book /by Sunday");
+        }
+        String[] parts = arguments.split("\\s*/by\\s*", 2);
+        if (parts.length < 2) {
+            throw new HedyException("OOPS!!! A deadline needs a /by time. "
+                    + "Try: deadline return book /by Sunday");
+        }
+        String description = parts[0].trim();
+        String by = parts[1].trim();
+        if (description.isEmpty()) {
+            throw new HedyException("OOPS!!! The description before /by cannot be empty. "
+                    + "Try: deadline return book /by Sunday");
+        }
+        if (by.isEmpty()) {
+            throw new HedyException("OOPS!!! The time after /by cannot be empty. "
+                    + "Try: deadline return book /by Sunday");
+        }
+        Task newTask = new Deadline(description, by);
+        tasks.add(newTask);
+        saveTasks();
+        printTaskAdded(newTask);
+    }
+
+    /**
+     * Adds an event. Expected form: {@code event <description> /from <start> /to <end>}.
+     */
+    private static void handleEvent(String arguments) throws HedyException {
+        if (arguments.isEmpty()) {
+            throw new HedyException("OOPS!!! The description of an event cannot be empty. "
+                    + "Try: event project meeting /from Mon 2pm /to 4pm");
+        }
+        String[] fromParts = arguments.split("\\s*/from\\s*", 2);
+        if (fromParts.length < 2) {
+            throw new HedyException("OOPS!!! An event needs a /from start and a /to end. "
+                    + "Try: event project meeting /from Mon 2pm /to 4pm");
+        }
+        String description = fromParts[0].trim();
+        String[] timeParts = fromParts[1].split("\\s*/to\\s*", 2);
+        if (timeParts.length < 2) {
+            throw new HedyException("OOPS!!! An event needs a /to end time. "
+                    + "Try: event project meeting /from Mon 2pm /to 4pm");
+        }
+        String start = timeParts[0].trim();
+        String end = timeParts[1].trim();
+        if (description.isEmpty() || start.isEmpty() || end.isEmpty()) {
+            throw new HedyException("OOPS!!! The description, start, and end of an event cannot be empty. "
+                    + "Try: event project meeting /from Mon 2pm /to 4pm");
+        }
+        Task newTask = new Event(description, start, end);
+        tasks.add(newTask);
+        saveTasks();
+        printTaskAdded(newTask);
+    }
+
+    /**
+     * Deletes the task at the given 1-based index.
+     */
+    private static void handleDelete(String arguments) throws HedyException {
+        int index = parseTaskIndex(arguments, "delete");
+        Task removedTask = tasks.remove(index);
+        saveTasks();
+        System.out.println(" Noted. I've removed this task:");
+        System.out.println("   " + removedTask);
+        System.out.println(" Now you have " + taskCountText() + " in the list.");
+    }
+
+    /**
+     * Marks or unmarks the task at the given 1-based index.
+     */
+    private static void handleMark(String arguments, boolean isDone) throws HedyException {
+        String commandName = isDone ? "mark" : "unmark";
+        int index = parseTaskIndex(arguments, commandName);
+        tasks.get(index).setDone(isDone);
+        saveTasks();
+        if (isDone) {
+            System.out.println(" Nice! I've marked this task as done:");
+        } else {
+            System.out.println(" OK, I've marked this task as not done yet:");
+        }
+        System.out.println("   " + tasks.get(index));
+    }
+
+    /**
+     * Converts a user-typed task number into a list index.
+     * Task numbers shown by {@code list} start at 1.
+     *
+     * @param arguments the text after the command word
+     * @param commandName the command, used to suggest a correction
+     */
+    private static int parseTaskIndex(String arguments, String commandName) throws HedyException {
+        if (arguments.isEmpty()) {
+            throw new HedyException("OOPS!!! Please give a task number. "
+                    + "Try: " + commandName + " 1");
+        }
+        String numberText = arguments.split("\\s+")[0];
+        int taskNumber;
+        try {
+            taskNumber = Integer.parseInt(numberText);
+        } catch (NumberFormatException e) {
+            throw new HedyException("OOPS!!! \"" + numberText + "\" is not a task number. "
+                    + "Try: " + commandName + " 1");
+        }
+        if (tasks.isEmpty()) {
+            throw new HedyException("OOPS!!! Your list is empty, so there is no task " + taskNumber + " to "
+                    + commandName + ".");
+        }
+        if (taskNumber < 1 || taskNumber > tasks.size()) {
+            throw new HedyException("OOPS!!! There is no task " + taskNumber + ". "
+                    + "Use list to see tasks numbered 1 to " + tasks.size() + ".");
+        }
+        return taskNumber - 1;
+    }
+
+    private static void printTaskAdded(Task task) {
+        System.out.println(" Got it. I've added this task:");
+        System.out.println("   " + task);
+        System.out.println(" Now you have " + taskCountText() + " in the list.");
+    }
+
+    /** Returns {@code "1 task"} or {@code "2 tasks"}, matching the current list size. */
+    private static String taskCountText() {
+        int count = tasks.size();
+        return count + (count == 1 ? " task" : " tasks");
+    }
+
+    /** Prints the horizontal line used around every reply. */
+    public static void printLine() {
+        System.out.println(LINE);
+    }
+
+    /**
+     * Returns the first word of a command, in lower case.
+     * {@code "Todo read book"} becomes {@code "todo"}.
+     */
+    private static String firstWord(String input) {
+        int space = input.indexOf(' ');
+        String word = space == -1 ? input : input.substring(0, space);
+        return word.toLowerCase();
+    }
+
+    /**
+     * Returns the text after the command word, with surrounding spaces removed.
+     */
+    private static String argumentsOf(String input) {
+        int space = input.indexOf(' ');
+        if (space == -1) {
+            return "";
+        }
+        return input.substring(space + 1).trim();
+    }
+
+    /**
+     * Loads tasks from {@code ./data/duke.txt} if the file exists.
+     * A missing file just means this is a new list. A line that does not match
+     * the save format is skipped.
+     */
+    private static void loadTasks() {
+        File file = new File(FILE_PATH);
+        if (!file.exists()) {
+            return;
+        }
+        try (Scanner fileScanner = new Scanner(file)) {
+            while (fileScanner.hasNextLine()) {
+                Task task = taskFromFileLine(fileScanner.nextLine());
+                if (task != null) {
+                    tasks.add(task);
+                }
+            }
+        } catch (IOException e) {
+            System.out.println(" I could not read saved tasks, so I am starting with an empty list.");
+        }
+    }
+
+    /**
+     * Builds one task from a saved line, or returns null if the line is not usable.
+     * Format: {@code T | 1 | read book}, {@code D | 0 | return book | Sunday},
+     * or {@code E | 0 | meeting | Mon 2pm | 4pm}.
+     */
+    private static Task taskFromFileLine(String line) {
+        String[] parts = line.split(" \\| ");
+        if (parts.length < 3) {
+            return null;
+        }
+        String type = parts[0];
+        boolean isDone = parts[1].equals("1");
+        String description = parts[2];
+
+        Task task = null;
+        if (type.equals("T")) {
+            task = new Todo(description);
+        } else if (type.equals("D") && parts.length >= 4) {
+            task = new Deadline(description, parts[3]);
+        } else if (type.equals("E") && parts.length >= 5) {
+            task = new Event(description, parts[3], parts[4]);
+        }
+        if (task != null && isDone) {
+            task.setDone(true);
+        }
+        return task;
+    }
+
+    /**
+     * Writes the current task list to {@code ./data/duke.txt}.
+     * Creates the data folder if it does not exist yet.
+     */
     private static void saveTasks() {
         try {
             File dir = new File("./data");
             if (!dir.exists()) {
                 dir.mkdirs();
             }
-            FileWriter writer = new FileWriter(FILE_PATH);
-            for (Task task : tasks) {
-                writer.write(task.toFileFormat() + System.lineSeparator());
+            try (FileWriter writer = new FileWriter(FILE_PATH)) {
+                for (Task task : tasks) {
+                    writer.write(task.toFileFormat() + System.lineSeparator());
+                }
             }
-            writer.close();
         } catch (IOException e) {
-            System.out.println(" Error saving tasks to disk.");
+            System.out.println(" I could not save your tasks to disk.");
         }
-    }
-
-    private static void handleTodo(String input) throws HedyException {
-        if (input.length() <= 4 || input.substring(4).trim().isEmpty()) {
-            throw new HedyException("OOPS!!! Hedy says the description of a todo cannot be empty.");
-        }
-        String description = input.substring(4).trim();
-        Task newTask = new Todo(description);
-        tasks.add(newTask);
-        saveTasks();
-        printTaskAdded(newTask);
-    }
-
-    private static void handleDeadline(String input) throws HedyException {
-        if (input.length() <= 8 || input.substring(8).trim().isEmpty()) {
-            throw new HedyException("OOPS!!! Hedy says the description of a deadline cannot be empty.");
-        }
-        String content = input.substring(8).trim();
-        String[] parts = content.split(" /by ");
-        if (parts.length < 2 || parts[0].isEmpty() || parts[1].isEmpty()) {
-            throw new HedyException("OOPS!!! Invalid deadline format. Use: deadline <desc> /by <time>");
-        }
-        Task newTask = new Deadline(parts[0].trim(), parts[1].trim());
-        tasks.add(newTask);
-        saveTasks();
-        printTaskAdded(newTask);
-    }
-
-    private static void handleEvent(String input) throws HedyException {
-        if (input.length() <= 5 || input.substring(5).trim().isEmpty()) {
-            throw new HedyException("OOPS!!! Hedy says the description of an event cannot be empty.");
-        }
-        String content = input.substring(5).trim();
-        String[] parts = content.split(" /from ");
-        if (parts.length < 2 || parts[0].isEmpty()) {
-            throw new HedyException("OOPS!!! Invalid event format. Use: event <desc> /from <start> /to <end>");
-        }
-        String desc = parts[0].trim();
-        String[] timeParts = parts[1].split(" /to ");
-        if (timeParts.length < 2 || timeParts[0].isEmpty() || timeParts[1].isEmpty()) {
-            throw new HedyException("OOPS!!! Invalid event time range. Use /from <start> /to <end>");
-        }
-        Task newTask = new Event(desc, timeParts[0].trim(), timeParts[1].trim());
-        tasks.add(newTask);
-        saveTasks();
-        printTaskAdded(newTask);
-    }
-
-    private static void handleDelete(String input) throws HedyException {
-        String[] parts = input.split(" ");
-        if (parts.length < 2) {
-            throw new HedyException("OOPS!!! Please specify which task number you want to delete.");
-        }
-        
-        int index;
-        try {
-            index = Integer.parseInt(parts[1]) - 1;
-        } catch (NumberFormatException e) {
-            throw new HedyException("OOPS!!! That is not a valid task number.");
-        }
-
-        if (index < 0 || index >= tasks.size()) {
-            throw new HedyException("OOPS!!! That task number does not exist in your list.");
-        }
-
-        Task removedTask = tasks.remove(index);
-        saveTasks();
-        System.out.println(" Noted. Hedy has removed this task:");
-        System.out.println("   " + removedTask);
-        System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
-    }
-
-    private static void handleMark(String input, boolean isDone) throws HedyException {
-        String[] parts = input.split(" ");
-        if (parts.length < 2) {
-            throw new HedyException("OOPS!!! Please specify the task number to mark/unmark.");
-        }
-        int index;
-        try {
-            index = Integer.parseInt(parts[1]) - 1;
-        } catch (NumberFormatException e) {
-            throw new HedyException("OOPS!!! That is not a valid task number.");
-        }
-        if (index < 0 || index >= tasks.size()) {
-            throw new HedyException("OOPS!!! That task number does not exist.");
-        }
-        tasks.get(index).setDone(isDone);
-        saveTasks();
-        if (isDone) {
-            System.out.println(" Nice! Hedy has marked this task as done:");
-        } else {
-            System.out.println(" OK, Hedy has marked this task as not done yet:");
-        }
-        System.out.println("   " + tasks.get(index));
-    }
-
-    private static void printTaskAdded(Task task) {
-        System.out.println(" Got it. Hedy has added this task:");
-        System.out.println("   " + task);
-        System.out.println(" Now you have " + tasks.size() + " tasks in the list.");
     }
 }
